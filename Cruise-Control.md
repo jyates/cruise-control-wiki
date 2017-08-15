@@ -1,6 +1,3 @@
-# Cruise Control Architecture
-![Architecture of Cruise Control](https://drive.google.com/file/d/0B5H3ylW2_8kBM3NTdldHc3FlUXc/view?usp=sharing)
-
 # REST API
 ## GET REQUESTS
 The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests includes the following operations:
