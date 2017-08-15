@@ -1,0 +1,120 @@
+# Cruise Control Architecture
+![Architecture of Cruise Control](https://drive.google.com/file/d/0B5H3ylW2_8kBM3NTdldHc3FlUXc/view?usp=sharing)
+
+# REST API
+## GET REQUESTS
+The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests includes the following operations:
+* Train the Linear Regression Model
+* Bootstrap the load monitor
+* Query the current cluster load
+* Get an optimization proposal
+* Query the state of Cruise Control
+
+### Train the linear regression model
+If use.linear.regression.model is set to true, user have to train the linear regression model before bootstrapping or sampling. The following GET request will start training the linear regression model:
+
+    GET /kafkacruisecontrol/train?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]
+
+After the linear regression model training is done (users can check the state of Kafka Cruise Control).
+
+### Bootstrap the load monitor (NOT RECOMMENDED)
+**(This is not recommended because it may cause the inaccurate partition traffic profiling due to missing metadata. Using the SampleStore is always the preferred way.)**
+In order for Kafka Cruise Control to work, the first step is to get the metric samples of partitions on a Kafka cluster. Although users can always wait until all the workload snapshot windows are filled up (e.g. 96 one-hour snapshot window will take 4 days to fill in), Kafka Cruise Control supports a bootstrap function to load old metric examples into the load monitor, so Kafka Cruise Control can begin to work sooner. 
+
+There are three bootstrap modes in Kafka Cruise Control:
+
+* **RANGE** mode: Bootstrap the load monitor by giving a start timestamp and end timestamp.
+
+        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&clearmetrics=[true/false]
+
+* **SINCE** mode: bootstrap the load monitor by giving a starting timestamp until it catches up with the wall clock time.
+
+        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&clearmetrics=[true/false]
+
+* **RECENT** mode: bootstrap the load monitor with the most recent metric samples until all the load snapshot windows needed by the load monitor are filled in. This is the simplest way to bootstrap the load monitor unless some of the load needs to be excluded. 
+
+        GET /kafkacruisecontrol/bootstrap&clearmetrics=[true/false]
+
+All the bootstrap modes has an option of whether to clear all the existing metric samples in Kafka Cruise Control or not. By default, all the bootstrap operations will clear all the existing metrics. Users can set the parameter clearmetrics=false if they want to preserve the existing metrics.
+
+### Get the state of Kafka Cruise Control
+User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
+
+    GET /kafkacruisecontrol/state
+
+The returned state contains the following information:
+* Monitor State:
+  * State: NOT_STARTED / RUNNING / BOOTSTRAPPING,
+  * Bootstrapping progress (If state is BOOTSTRAPPING)
+  * Monitored Window (Represented by the ending time of the window)
+  * Number of valid Partitions out of the total number of partitions
+  * Percentage of the partitions that are valid
+* Executor State:
+  * State: **NO_TASK_IN_PROGRESS** /
+	   **EXECUTION_STARTED** /
+	   **REPLICA_MOVEMENT_IN_PROGRESS** /
+	   **LEADER_MOVEMENT_IN_PROGRESS**
+  * Total number of replicas to move (if state is REPLICA_MOVEMENT_IN_PROGRESS)
+  * Number of replicas finished movement (if state is REPLICA_MOVEMENT_IN_PROGRESS)
+
+### Get the cluster load
+Once Cruise Control Load Monitor shows it is in the RUNNING state, Users can use the following HTTP GET to get the cluster load:
+
+    GET /kafkacruisecontrol/load?time=[TIMESTAMP]&granularity=[GRANULARITY]
+
+When the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
+
+The valid granularity settings are: broker and replica. The broker level load gives a summary of the workload on the brokers in the Kafka cluster. The replica granularity returns the detail workload of each replicas in the cluster in an XML format. The replica level information could be prohibitively big if the cluster hosts a lot of replicas.
+
+NOTE: The load shown is only for the load from the valid partitions. i.e the partitions with enough metric samples. Even if the monitored valid partition percentage is lower than the configured percentage (e.g. 98%), the load will still be returned. So please always verify the Load Monitor state to decide whether the workload is representative enough.
+
+### Get optimization proposals
+The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
+
+    GET /kafkacruisecontrol/proposal?time=[TIMESTAMP]&verbose=[true/false]&ignore_proposal_cache=[true/false]
+
+When the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
+
+If verbose is turned on, Kafka Cruise Control will return all the generated proposals. Otherwise a summary of the proposal will be returned.
+
+Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the ignore_proposal_cache flag to true.
+
+## POST Requests
+The post requests of Kafka Cruise Control REST API are operations that will have impact on the Kafka cluster. The post operations include:
+* Add a list of new brokers to Kafka
+* Decommission a broker from the Kafka cluster
+* Trigger a workload balance
+* Stop the current proposal execution task
+
+The partition movement will be divided into small batches. At any given time, there will only be at most N replicas (configured by num.concurrent.partition.movements.per.broker) moving into / out of each broker.
+
+All the POST actions except stopping current execution task has a dry-run mode, which only generate the rebalance proposals and estimated result but not really execute the proposals. To avoid accidentally triggering of data movement, by default all the POST actions are in dry-run mode. To let Kafka Cruise Control actually move data, users need to explicitly set dryrun=false.
+
+### Add brokers to the Kafka cluster
+The following POST request adds the given brokers to the Kafka cluster
+
+    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]
+
+When adding new brokers to a Kafka cluster, Cruise Control makes sure that the replicas will only be moved from the existing brokers to the given broker, but not moved among existing brokers. 
+
+Users can choose whether to throttle the newly added broker during the partition movement. If the new brokers are unthrottled, there might be more than num.concurrent.partition.movements.per.broker moving into each new brokers concurrently.
+
+### Remove a broker from the Kafka cluster
+The following POST request removes a broker from the Kafka cluster:
+
+    POST /kafkacruisecontrol/remove_broker?brokerid=[id1, id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]
+
+Similar to adding broker to a cluster, removing a broker from a cluster will only move partitions from the broker to be removed to the other existing brokers. There won’t be partition movements among remaining brokers.
+
+User can choose whether to throttle the removed broker during the partition movement. If the removed broker is unthrottled, there might be more than num.concurrent.partition.movements.per.broker moving into that broker concurrently.
+
+### Rebalance a cluster
+The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
+
+    POST /kafkacruisecontrol/rebalance?dryrun=[true/false]&force[true/false]
+
+When rebalancing a cluster, all the brokers in the cluster are eligible to give / receive replicas. All the brokers will be throttled during the partition movement.
+
+When force is set to true, the rebalance will still be performed even if there is insufficient modeled partitions.
+
+
