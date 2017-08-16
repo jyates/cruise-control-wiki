@@ -1,4 +1,3 @@
-# REST API
 ## GET REQUESTS
 The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests includes the following operations:
 * Train the Linear Regression Model
