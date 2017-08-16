@@ -6,33 +6,6 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 * Get an optimization proposal
 * Query the state of Cruise Control
 
-### Train the linear regression model
-If use.linear.regression.model is set to true, user have to train the linear regression model before bootstrapping or sampling. The following GET request will start training the linear regression model:
-
-    GET /kafkacruisecontrol/train?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]
-
-After the linear regression model training is done (users can check the state of Kafka Cruise Control).
-
-### Bootstrap the load monitor (NOT RECOMMENDED)
-**(This is not recommended because it may cause the inaccurate partition traffic profiling due to missing metadata. Using the SampleStore is always the preferred way.)**
-In order for Kafka Cruise Control to work, the first step is to get the metric samples of partitions on a Kafka cluster. Although users can always wait until all the workload snapshot windows are filled up (e.g. 96 one-hour snapshot window will take 4 days to fill in), Kafka Cruise Control supports a bootstrap function to load old metric examples into the load monitor, so Kafka Cruise Control can begin to work sooner. 
-
-There are three bootstrap modes in Kafka Cruise Control:
-
-* **RANGE** mode: Bootstrap the load monitor by giving a start timestamp and end timestamp.
-
-        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&clearmetrics=[true/false]
-
-* **SINCE** mode: bootstrap the load monitor by giving a starting timestamp until it catches up with the wall clock time.
-
-        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&clearmetrics=[true/false]
-
-* **RECENT** mode: bootstrap the load monitor with the most recent metric samples until all the load snapshot windows needed by the load monitor are filled in. This is the simplest way to bootstrap the load monitor unless some of the load needs to be excluded. 
-
-        GET /kafkacruisecontrol/bootstrap&clearmetrics=[true/false]
-
-All the bootstrap modes has an option of whether to clear all the existing metric samples in Kafka Cruise Control or not. By default, all the bootstrap operations will clear all the existing metrics. Users can set the parameter clearmetrics=false if they want to preserve the existing metrics.
-
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
 
@@ -74,6 +47,33 @@ When the time field is not provided, it is default to the wall clock time. If th
 If verbose is turned on, Kafka Cruise Control will return all the generated proposals. Otherwise a summary of the proposal will be returned.
 
 Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the ignore_proposal_cache flag to true.
+
+### Bootstrap the load monitor (NOT RECOMMENDED)
+**(This is not recommended because it may cause the inaccurate partition traffic profiling due to missing metadata. Using the SampleStore is always the preferred way.)**
+In order for Kafka Cruise Control to work, the first step is to get the metric samples of partitions on a Kafka cluster. Although users can always wait until all the workload snapshot windows are filled up (e.g. 96 one-hour snapshot window will take 4 days to fill in), Kafka Cruise Control supports a bootstrap function to load old metric examples into the load monitor, so Kafka Cruise Control can begin to work sooner. 
+
+There are three bootstrap modes in Kafka Cruise Control:
+
+* **RANGE** mode: Bootstrap the load monitor by giving a start timestamp and end timestamp.
+
+        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&clearmetrics=[true/false]
+
+* **SINCE** mode: bootstrap the load monitor by giving a starting timestamp until it catches up with the wall clock time.
+
+        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&clearmetrics=[true/false]
+
+* **RECENT** mode: bootstrap the load monitor with the most recent metric samples until all the load snapshot windows needed by the load monitor are filled in. This is the simplest way to bootstrap the load monitor unless some of the load needs to be excluded. 
+
+        GET /kafkacruisecontrol/bootstrap&clearmetrics=[true/false]
+
+All the bootstrap modes has an option of whether to clear all the existing metric samples in Kafka Cruise Control or not. By default, all the bootstrap operations will clear all the existing metrics. Users can set the parameter clearmetrics=false if they want to preserve the existing metrics.
+
+### Train the linear regression model (Testing in progress)
+If use.linear.regression.model is set to true, user have to train the linear regression model before bootstrapping or sampling. The following GET request will start training the linear regression model:
+
+    GET /kafkacruisecontrol/train?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]
+
+After the linear regression model training is done (users can check the state of Kafka Cruise Control).
 
 ## POST Requests
 The post requests of Kafka Cruise Control REST API are operations that will have impact on the Kafka cluster. The post operations include:
