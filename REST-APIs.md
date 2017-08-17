@@ -1,10 +1,11 @@
 ## GET REQUESTS
 The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests includes the following operations:
-* Train the Linear Regression Model
-* Bootstrap the load monitor
-* Query the current cluster load
-* Get an optimization proposal
 * Query the state of Cruise Control
+* Query the current cluster load
+* Query partition resource utilization
+* Get an optimization proposal
+* Bootstrap the load monitor
+* Train the Linear Regression Model
 
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
@@ -36,6 +37,13 @@ When the time field is not provided, it is default to the wall clock time. If th
 The valid granularity settings are: broker and replica. The broker level load gives a summary of the workload on the brokers in the Kafka cluster. The replica granularity returns the detail workload of each replicas in the cluster in an XML format. The replica level information could be prohibitively big if the cluster hosts a lot of replicas.
 
 NOTE: The load shown is only for the load from the valid partitions. i.e the partitions with enough metric samples. Even if the monitored valid partition percentage is lower than the configured percentage (e.g. 98%), the load will still be returned. So please always verify the Load Monitor state to decide whether the workload is representative enough.
+
+### Query the partition resource utilization
+The following GET request gives the partition load sorted by the utilization of a given resource:
+
+    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]
+
+The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the start is the earliest monitored time and the end time is current wall clock time.
 
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
