@@ -1,6 +1,6 @@
 Welcome to the cruise-control wiki!
 
-Cruise Control is a project that helps run Kafka hand free! 
+Cruise Control is a project that helps operate Kafka hands-free!
 
 ## Architecture
 The architecture of Cruise Control is illustrated below:
