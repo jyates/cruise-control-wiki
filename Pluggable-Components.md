@@ -38,4 +38,5 @@ The actions users can take are:
 * Fix the anomaly
 * Wait some time and check if the anomaly still exists
 * Ignore the anomaly
+
 By default Cruise Control is configured to use `NoopAnomalyNotifier` which ignores all the anomalies.
