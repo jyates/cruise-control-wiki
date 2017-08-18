@@ -43,7 +43,7 @@ Broker_CPU_Utilization *
 (c * Partition_Follower_Bytes_In_Rate) / 
 (a * Leader_Bytes_In_Rate_On_Broker + b * Leader_Bytes_Out_rate_On_Broker + c * Follower_Bytes_In_Rate_On_Broker)
 
-### Linear Regression Model
+### Linear Regression Model (In development and testing)
 The linear regression model requires user to train the model by triggering the training before bootstrapping or filling the samples into the workload snapshots. It demands the training samples to be diverse enough in order to get accurate coefficients.
 
 Broker_CPU_Utilization = 
@@ -65,6 +65,9 @@ The CPU utilization may be affected by things other than bytes in and out rate s
 Log compaction is another contribution to CPU Utilization, but given that it is also pretty much based on the total bytes produced, by looking at the bytes in rate we have already factored that in.
 
 #### Issues and Solutions to Linear Regression Model:
+##### More variables are needed
+So far we assumed the CPU utilization is only associated with throughput. This is likely over-simplified. We should collect more metrics to take ProduceRequestRate, ConsumerRequestRate and average request size into consideration. That also means we need to collect per partition request rate as well.
+
 ##### Unbalanced Distribution of Metric Samples
 Most of the metrics samples collected fall in a narrow range of CPU utilizations (e.g. 40% - 60%), a naive regression will cause cause the model to be biased due to the heavy weight of the samples in this CPU utilization range, thus cause inaccurate estimation when the CPU utilization falls out of this range.
 
