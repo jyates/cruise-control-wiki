@@ -1,6 +1,7 @@
 '''Contents'''
-* [[Home|Overview]]
+* [[Home | Cruise Control Wiki]]
+* [[Overview | Overview]]
 * '''User Guide'''
-** [[REST APIs|REST API]]
-** [[Pluggable Components|Pluggable Components]]
-** [[Configurations|Configurations]]
+** [[REST APIs | REST API]]
+** [[Pluggable Components | Pluggable Components]]
+** [[Configurations | Configurations]]
