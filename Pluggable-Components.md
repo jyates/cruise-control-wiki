@@ -33,6 +33,7 @@ The goals in Kafka Cruise Control are pluggable with different priorities. The d
 The anomaly notifier is a communication channel between cruise control and users. It notify the users about the anomaly detected in the cluster and let users make decision on what action to take about the anomaly. The anomalies include:
 * Broker failure
 * Goal violation
+
 The actions users can take are:
 * Fix the anomaly
 * Wait some time and check if the anomaly still exists
