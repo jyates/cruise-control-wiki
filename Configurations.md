@@ -107,7 +107,7 @@ We are still trying to improve cruise control. And following are some configurat
 | Name                                | Type   | Required? | Default Value | Description                                                                                                                                                                                    |
 |-------------------------------------|--------|-----------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | partition.metric.sample.store.topic | String | Y         |               | The topic in which Cruise Control will store its processed metric samples as a backup. When Cruise Control is rebooted, it will load the metrics from this topic to populate the load monitor. |
-| model.training.sample.store.topic   | String | Y         |               | The topic in which Cruise Control will store its training samples as a backup. When Cruise Control is rebooted, it will load the training samples from this topic to train its cluster model.  |
+| broker.metric.sample.store.topic   | String | Y         |               | The topic in which Cruise Control will store its broker metric samples as a backup. When Cruise Control is rebooted, it will load the broker metric samples from this topic to train its cluster model.  |
 
 ### BrokerCapacityConfigurationFileResolver configurations
 | Name                 | Type   | Required? | Default Value | Description                                                                        |
