@@ -5,3 +5,4 @@
 ** [[REST APIs | REST API]]
 ** [[Pluggable Components | Pluggable Components]]
 ** [[Configurations | Configurations]]
+** [[Sensors | Sensors]]
