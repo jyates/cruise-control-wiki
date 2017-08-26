@@ -1,4 +1,4 @@
-# Welcome to the cruise-control
+# Welcome to Cruise Control
 
 Cruise Control is a project that helps operate Kafka hands-free!
 
