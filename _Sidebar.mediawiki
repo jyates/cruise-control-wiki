@@ -6,5 +6,5 @@
 ** [[Pluggable Components | Pluggable Components]]
 ** [[Configurations | Configurations]]
 ** [[Sensors | Sensors]]
-* ```Developer's Guide```
+* '''Developer's Guide'''
 ** [[Write your own goals | Write your own goals]]
