@@ -21,9 +21,13 @@ The goals in Kafka Cruise Control are pluggable with different priorities. The d
 
 * **PotentialNwOutGoal**: A goal that ensures the potential network output (when all the replicas becomes leaders) on each of the broker do not exceed the broker’s network outbound bandwidth capacity.
 
-* **ResourceDistributionGoal**: Attempt to make the workload variance among all the brokers are within a certain range. This goal does not do anything if the cluster is in a low utilization mode (when all the resource utilization of each broker is below a configured percentage.)
+* **ResourceDistributionGoals**: Attempt to make the resource utilization variance among all the brokers are within a certain range. This goal does not do anything if the cluster is in a low utilization mode (when all the resource utilization of each broker is below a configured percentage.) This is not a single goal, but consists of the following separate goals for each of the resources. 
+    * DiskUtilDistributionGoal
+    * NetworkInboundUtilDistributionGoal
+    * NetworkOutboundUtilDistributionGoal
+    * CpuUtilDistributionGoal
 
-* **LeaderBytesInDistributionGoals**: Attempt to make the leader bytes in rate on each host to be balanced.
+* **LeaderBytesInDistributionGoal**: Attempt to make the leader bytes in rate on each host to be balanced.
 
 * **TopicReplicaDistributionGoal**: Attempt to make the replicas of the same topic are evenly distributed across the entire cluster.
 
