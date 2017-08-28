@@ -10,13 +10,13 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
 
-    GET /kafkacruisecontrol/state
+    GET /kafkacruisecontrol/state?verbose=[true/false]
 
 The returned state contains the following information:
 * Monitor State:
   * State: NOT_STARTED / RUNNING / BOOTSTRAPPING,
   * Bootstrapping progress (If state is BOOTSTRAPPING)
-  * Monitored Window (Represented by the ending time of the window)
+  * Number of valid monitored windows / Number of total monitored windows
   * Number of valid Partitions out of the total number of partitions
   * Percentage of the partitions that are valid
 * Executor State:
@@ -26,6 +26,11 @@ The returned state contains the following information:
 	   **LEADER_MOVEMENT_IN_PROGRESS**
   * Total number of replicas to move (if state is REPLICA_MOVEMENT_IN_PROGRESS)
   * Number of replicas finished movement (if state is REPLICA_MOVEMENT_IN_PROGRESS)
+* Analyzer State:
+  * isProposalReady: Is there a proposal cached
+  * ReadyGaols: A list of goals that are ready for running
+
+If verbose is set to true. The details about monitored windows and goals will be displayed.
 
 ### Get the cluster load
 Once Cruise Control Load Monitor shows it is in the RUNNING state, Users can use the following HTTP GET to get the cluster load:
@@ -48,13 +53,17 @@ The returned result would be a partition list sorted by the utilization of the s
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
 
-    GET /kafkacruisecontrol/proposal?time=[TIMESTAMP]&verbose=[true/false]&ignore_proposal_cache=[true/false]
+    GET /kafkacruisecontrol/proposal?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
 
-When the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
+When no goal list is specified, all the pre-defined goals will be used.
+
+Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal to serve when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the ignore_proposal_cache flag to true. The precomputing always uses available valid partitions to generate the proposals.
+
+By default the proposal will be returned from the cache where all the goals are used. Detail information about the reliability of the proposals will also be returned. If users wants to run a different set of goals, users can specify the goals argument with the goal names (simple class name).
 
 If verbose is turned on, Kafka Cruise Control will return all the generated proposals. Otherwise a summary of the proposal will be returned.
 
-Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the ignore_proposal_cache flag to true.
+Users can specify withAvailableValidWindows if they want to run the goals with available valid windows instead of available valid partitions.
 
 ### Bootstrap the load monitor (NOT RECOMMENDED)
 **(This is not recommended because it may cause the inaccurate partition traffic profiling due to missing metadata. Using the SampleStore is always the preferred way.)**
@@ -115,10 +124,10 @@ User can choose whether to throttle the removed broker during the partition move
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?dryrun=[true/false]&force[true/false]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
 
 When rebalancing a cluster, all the brokers in the cluster are eligible to give / receive replicas. All the brokers will be throttled during the partition movement.
 
-When force is set to true, the rebalance will still be performed even if there is insufficient modeled partitions.
+By default the rebalance will be in DryRun mode. Please explicitly set dryrun to false to execute the proposals. Similar to the GET interface for getting proposals, the rebalance can also be based on available valid windows or available valid partitions.
 
 
