@@ -53,7 +53,7 @@ The returned result would be a partition list sorted by the utilization of the s
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
 
-    GET /kafkacruisecontrol/proposal?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
+    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
 
 When no goal list is specified, all the pre-defined goals will be used.
 
