@@ -126,6 +126,14 @@ The following POST request will let Kafka Cruise Control rebalance a Kafka clust
 
     POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
 
+**goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
+
+**withAvailableValidWindows:** rebalance the cluster based on the information in the available valid snapshot windows. A valid snapshot window is a windows whose valid monitored partitions coverage meets the requirements of all the goals.
+
+**withAvailableValidPartitions:** rebalance the cluster based on all the available valid partitions. All the snapshot windows will be included in this case. (This is the default behavior.)
+
+Users can only specify either withAvailableValidWindows or withAvailableValidPartitions, but not both.
+
 When rebalancing a cluster, all the brokers in the cluster are eligible to give / receive replicas. All the brokers will be throttled during the partition movement.
 
 By default the rebalance will be in DryRun mode. Please explicitly set dryrun to false to execute the proposals. Similar to the GET interface for getting proposals, the rebalance can also be based on available valid windows or available valid partitions.
