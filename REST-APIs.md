@@ -124,15 +124,15 @@ User can choose whether to throttle the removed broker during the partition move
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&with_available_valid_windows=[true/false]&with_available_valid_partitions=[true/false]
 
 **goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
 
-**withAvailableValidWindows:** rebalance the cluster based on the information in the available valid snapshot windows. A valid snapshot window is a windows whose valid monitored partitions coverage meets the requirements of all the goals.
+**with_available_valid_windows:** rebalance the cluster based on the information in the available valid snapshot windows. A valid snapshot window is a windows whose valid monitored partitions coverage meets the requirements of all the goals.
 
-**withAvailableValidPartitions:** rebalance the cluster based on all the available valid partitions. All the snapshot windows will be included in this case. (This is the default behavior.)
+**with_available_valid_partitions:** rebalance the cluster based on all the available valid partitions. All the snapshot windows will be included in this case. (This is the default behavior.)
 
-Users can only specify either withAvailableValidWindows or withAvailableValidPartitions, but not both.
+Users can only specify either with_available_valid_windows or with_available_valid_partitions, but not both.
 
 When rebalancing a cluster, all the brokers in the cluster are eligible to give / receive replicas. All the brokers will be throttled during the partition movement.
 
