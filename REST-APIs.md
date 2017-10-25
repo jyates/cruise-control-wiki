@@ -28,7 +28,7 @@ The returned state contains the following information:
   * Number of replicas finished movement (if state is REPLICA_MOVEMENT_IN_PROGRESS)
 * Analyzer State:
   * isProposalReady: Is there a proposal cached
-  * ReadyGaols: A list of goals that are ready for running
+  * ReadyGoals: A list of goals that are ready for running
 
 If verbose is set to true. The details about monitored windows and goals will be displayed.
 
