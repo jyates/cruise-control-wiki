@@ -143,4 +143,4 @@ The following POST request will let Kafka Cruise Control stop an ongoing rebalan
 
     POST /kafkacruisecontrol/stop_proposal_execution
 
-Note that after Cruise Control does not wait for the on going batch to finish when it stops execution, i.e. the in progress batch may still be running after cruise control stops the execution.
+Note that Cruise Control does not wait for the on going batch to finish when it stops execution, i.e. the in progress batch may still be running after cruise control stops the execution.
