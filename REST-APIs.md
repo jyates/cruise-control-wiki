@@ -124,7 +124,7 @@ User can choose whether to throttle the removed broker during the partition move
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&with_available_valid_windows=[true/false]&with_available_valid_partitions=[true/false]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[with_available_valid_windows&with_available_valid_partitions]
 
 **goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
 
