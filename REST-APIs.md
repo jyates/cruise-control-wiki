@@ -1,9 +1,9 @@
 ## GET REQUESTS
-The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests includes the following operations:
+The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests include the following operations:
 * Query the state of Cruise Control
 * Query the current cluster load
 * Query partition resource utilization
-* Get an optimization proposal
+* Get optimization proposals
 * Bootstrap the load monitor
 * Train the Linear Regression Model
 
@@ -14,10 +14,10 @@ User can query the state of Kafka Cruise Control at any time by issuing an HTTP 
 
 The returned state contains the following information:
 * Monitor State:
-  * State: NOT_STARTED / RUNNING / BOOTSTRAPPING,
+  * State: **NOT_STARTED** / **RUNNING** / **SAMPLING** / **PAUSED** / **BOOTSTRAPPING** / **TRAINING** / **LOADING**,
   * Bootstrapping progress (If state is BOOTSTRAPPING)
   * Number of valid monitored windows / Number of total monitored windows
-  * Number of valid Partitions out of the total number of partitions
+  * Number of valid partitions out of the total number of partitions
   * Percentage of the partitions that are valid
 * Executor State:
   * State: **NO_TASK_IN_PROGRESS** /
