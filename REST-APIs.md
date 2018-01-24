@@ -10,7 +10,7 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
 
-    GET /kafkacruisecontrol/state?verbose=[true/false]
+    GET /kafkacruisecontrol/state?verbose=[true/false]&json=[true/false]
 
 The returned state contains the following information:
 * Monitor State:
@@ -46,24 +46,24 @@ NOTE: The load shown is only for the load from the valid partitions. i.e the par
 ### Query the partition resource utilization
 The following GET request gives the partition load sorted by the utilization of a given resource:
 
-    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]
+    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]
 
-The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the start is the earliest monitored time and the end time is current wall clock time.
+The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the `start` is the earliest monitored time, the `end` is current wall clock time, and `resource` is `DISK`.
 
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
 
-    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&withAvailableValidWindows=[true/false]&withAvailableValidPartitions=[true/false]
+    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]
 
-When no goal list is specified, all the pre-defined goals will be used.
+Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal to serve when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the `ignore_proposal_cache` flag to true. The precomputing always uses available valid partitions to generate the proposals.
 
-Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal to serve when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the ignore_proposal_cache flag to true. The precomputing always uses available valid partitions to generate the proposals.
+By default the proposal will be returned from the cache where all the pre-defined goals are used. Detailed information about the reliability of the proposals will also be returned. If users want to run a different set of goals, they can specify the `goals` argument with the goal names (simple class name).
 
-By default the proposal will be returned from the cache where all the goals are used. Detail information about the reliability of the proposals will also be returned. If users wants to run a different set of goals, users can specify the goals argument with the goal names (simple class name).
+If `verbose` is turned on, Cruise Control will return all the generated proposals. Otherwise a summary of the proposals will be returned.
 
-If verbose is turned on, Kafka Cruise Control will return all the generated proposals. Otherwise a summary of the proposal will be returned.
+Users can specify `data_from` to indicate if they want to run the goals with available `valid_windows` or available `valid_partitions` (default: `valid_windows`).
 
-Users can specify withAvailableValidWindows if they want to run the goals with available valid windows instead of available valid partitions.
+If `kafka_assigner` is turned on, the proposals will be generated in Kafka Assigner mode. This mode performs optimizations using the goals specific to Kafka Assigner -- i.e. goals with name `KafkaAssigner*`.
 
 ### Bootstrap the load monitor (NOT RECOMMENDED)
 **(This is not recommended because it may cause the inaccurate partition traffic profiling due to missing metadata. Using the SampleStore is always the preferred way.)**
@@ -73,11 +73,11 @@ There are three bootstrap modes in Kafka Cruise Control:
 
 * **RANGE** mode: Bootstrap the load monitor by giving a start timestamp and end timestamp.
 
-        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&clearmetrics=[true/false]
+        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&clearmetrics=[true/false]&json=[true/false]
 
 * **SINCE** mode: bootstrap the load monitor by giving a starting timestamp until it catches up with the wall clock time.
 
-        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&clearmetrics=[true/false]
+        GET /kafkacruisecontrol/bootstrap?start=[START_TIMESTAMP]&clearmetrics=[true/false]&json=[true/false]
 
 * **RECENT** mode: bootstrap the load monitor with the most recent metric samples until all the load snapshot windows needed by the load monitor are filled in. This is the simplest way to bootstrap the load monitor unless some of the load needs to be excluded. 
 
@@ -88,7 +88,7 @@ All the bootstrap modes has an option of whether to clear all the existing metri
 ### Train the linear regression model (Testing in progress)
 If use.linear.regression.model is set to true, user have to train the linear regression model before bootstrapping or sampling. The following GET request will start training the linear regression model:
 
-    GET /kafkacruisecontrol/train?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]
+    GET /kafkacruisecontrol/train?start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]
 
 After the linear regression model training is done (users can check the state of Kafka Cruise Control).
 
@@ -106,25 +106,25 @@ All the POST actions except stopping current execution task has a dry-run mode, 
 ### Add brokers to the Kafka cluster
 The following POST request adds the given brokers to the Kafka cluster
 
-    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]
+    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]
 
 When adding new brokers to a Kafka cluster, Cruise Control makes sure that the replicas will only be moved from the existing brokers to the given broker, but not moved among existing brokers. 
 
-Users can choose whether to throttle the newly added broker during the partition movement. If the new brokers are unthrottled, there might be more than num.concurrent.partition.movements.per.broker moving into each new brokers concurrently.
+Users can choose whether to throttle the newly added broker during the partition movement. If the new brokers are unthrottled, there might be more than `num.concurrent.partition.movements.per.broker` moving into each new brokers concurrently.
 
 ### Remove a broker from the Kafka cluster
 The following POST request removes a broker from the Kafka cluster:
 
-    POST /kafkacruisecontrol/remove_broker?brokerid=[id1, id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]
+    POST /kafkacruisecontrol/remove_broker?brokerid=[id1, id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]
 
-Similar to adding broker to a cluster, removing a broker from a cluster will only move partitions from the broker to be removed to the other existing brokers. There won’t be partition movements among remaining brokers.
+Similar to adding broker to a cluster, removing a broker from a cluster will only move partitions from the broker to be removed to the other existing brokers. There won't be partition movements among remaining brokers.
 
-User can choose whether to throttle the removed broker during the partition movement. If the removed broker is unthrottled, there might be more than num.concurrent.partition.movements.per.broker moving into that broker concurrently.
+User can choose whether to throttle the removed broker during the partition movement. If the removed broker is unthrottled, there might be more than `num.concurrent.partition.movements.per.broker` moving into that broker concurrently.
 
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]
 
 **goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
 
