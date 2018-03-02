@@ -146,8 +146,8 @@ When rebalancing a cluster, all the brokers in the cluster are eligible to give 
 By default the rebalance will be in DryRun mode. Please explicitly set dryrun to false to execute the proposals. Similar to the GET interface for getting proposals, the rebalance can also be based on available valid windows or available valid partitions.
 
 ### Stop an ongoing rebalance
-The following POST request will let Kafka Cruise Control stop an ongoing rebalance:
+The following POST request will let Kafka Cruise Control stop an ongoing `rebalance`, `add_broker`, or `remove_broker` operation:
 
     POST /kafkacruisecontrol/stop_proposal_execution
 
-Note that Cruise Control does not wait for the on going batch to finish when it stops execution, i.e. the in progress batch may still be running after cruise control stops the execution.
+Note that Cruise Control does not wait for the ongoing batch to finish when it stops execution, i.e. the in-progress batch may still be running after Cruise Control stops the execution.
