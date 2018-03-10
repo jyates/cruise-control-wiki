@@ -150,14 +150,16 @@ By default the rebalance will be in DryRun mode. Please explicitly set dryrun to
 ### Stop an ongoing rebalance
 The following POST request will let Kafka Cruise Control stop an ongoing `rebalance`, `add_broker`, or `remove_broker` operation:
 
-    POST /kafkacruisecontrol/pause_sampling
+    POST /kafkacruisecontrol/stop_proposal_execution
 
 Note that Cruise Control does not wait for the ongoing batch to finish when it stops execution, i.e. the in-progress batch may still be running after Cruise Control stops the execution.
 
 ### Pause metrics load sampling
 The following POST request will let Kafka Cruise Control pause an ongoing metrics sampling process:
 
-    POST /kafkacruisecontrol/resume_sampling
+    POST /kafkacruisecontrol/pause_sampling
 
 ### Resume metrics load sampling
 The following POST request will let Kafka Cruise Control resume a paused metrics sampling process:
+
+    POST /kafkacruisecontrol/resume_sampling
