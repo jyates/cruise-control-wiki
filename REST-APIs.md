@@ -53,9 +53,9 @@ NOTE: The load shown is only for the load from the valid partitions. i.e the par
 ### Query the partition resource utilization
 The following GET request gives the partition load sorted by the utilization of a given resource:
 
-    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]
+    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]
 
-The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the `start` is the earliest monitored time, the `end` is current wall clock time, and `resource` is `DISK`.
+The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster.
 
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
