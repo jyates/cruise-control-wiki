@@ -105,8 +105,10 @@ The post requests of Kafka Cruise Control REST API are operations that will have
 * Decommission a broker from the Kafka cluster
 * Trigger a workload balance
 * Stop the current proposal execution task
+* Pause metrics load sampling
+* Resume metrics load sampling
 
-The partition movement will be divided into small batches. At any given time, there will only be at most N replicas (configured by num.concurrent.partition.movements.per.broker) moving into / out of each broker.
+The partition movement will be divided into small batches. At any given time, there will only be at most `N` replicas (configured by `num.concurrent.partition.movements.per.broker`) moving into / out of each broker.
 
 All the POST actions except stopping current execution task has a dry-run mode, which only generate the rebalance proposals and estimated result but not really execute the proposals. To avoid accidentally triggering of data movement, by default all the POST actions are in dry-run mode. To let Kafka Cruise Control actually move data, users need to explicitly set dryrun=false.
 
@@ -148,6 +150,14 @@ By default the rebalance will be in DryRun mode. Please explicitly set dryrun to
 ### Stop an ongoing rebalance
 The following POST request will let Kafka Cruise Control stop an ongoing `rebalance`, `add_broker`, or `remove_broker` operation:
 
-    POST /kafkacruisecontrol/stop_proposal_execution
+    POST /kafkacruisecontrol/pause_sampling
 
 Note that Cruise Control does not wait for the ongoing batch to finish when it stops execution, i.e. the in-progress batch may still be running after Cruise Control stops the execution.
+
+### Pause metrics load sampling
+The following POST request will let Kafka Cruise Control pause an ongoing metrics sampling process:
+
+    POST /kafkacruisecontrol/resume_sampling
+
+### Resume metrics load sampling
+The following POST request will let Kafka Cruise Control resume a paused metrics sampling process:
