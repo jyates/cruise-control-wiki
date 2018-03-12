@@ -17,7 +17,17 @@ The broker Capacity Config Resolver is the way for Cruise Control to get the bro
 ## Goals
 The goals in Kafka Cruise Control are pluggable with different priorities. The default priority is:
 
-* **RackAwareCapacityGoal**: A goal that ensures all the replicas of each partition are assigned in a rack aware manner. And all the broker’s resource utilization are below a given threshold.
+* **Rack-awareness**: A goal that ensures all the replicas of each partition are assigned in a rack aware manner.
+
+* **ReplicaCapacityGoal**: Attempt to make all the brokers in a cluster to have less than a given number of replicas.
+
+* **CapacityGoals**: Goals that ensures the broker resource utilization is below a given threshold for the corresponding resource. Capacity goals are: 
+    * DiskCapacityGoal
+    * NetworkInboundCapacityGoal
+    * NetworkOutboundCapacityGoal
+    * CpuCapacityGoal
+
+* **ReplicaDistributionGoal**: Attempt to make all the brokers in a cluster to have the similar number of replicas.
 
 * **PotentialNwOutGoal**: A goal that ensures the potential network output (when all the replicas becomes leaders) on each of the broker do not exceed the broker’s network outbound bandwidth capacity.
 
@@ -30,8 +40,6 @@ The goals in Kafka Cruise Control are pluggable with different priorities. The d
 * **LeaderBytesInDistributionGoal**: Attempt to make the leader bytes in rate on each host to be balanced.
 
 * **TopicReplicaDistributionGoal**: Attempt to make the replicas of the same topic are evenly distributed across the entire cluster.
-
-* **ReplicaDistributionGoal**: Attempt to make all the brokers in a cluster to have the similar amount of replicas.
 
 ## Anomaly Notifier
 The anomaly notifier is a communication channel between cruise control and users. It notify the users about the anomaly detected in the cluster and let users make decision on what action to take about the anomaly. The anomalies include:
