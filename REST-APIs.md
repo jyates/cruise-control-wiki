@@ -10,6 +10,7 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 * Query the state of Cruise Control
 * Query the current cluster load
 * Query partition resource utilization
+* Query partition and replica state
 * Get optimization proposals
 * Bootstrap the load monitor
 * Train the Linear Regression Model
@@ -17,7 +18,7 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
 
-    GET /kafkacruisecontrol/state?verbose=[true/false]&json=[true/false]
+    GET /kafkacruisecontrol/state?verbose=[true/false]&super_verbose=[true/false]&json=[true/false]
 
 The returned state contains the following information:
 * Monitor State:
@@ -38,29 +39,41 @@ The returned state contains the following information:
   * ReadyGoals: A list of goals that are ready for running
 
 If verbose is set to true. The details about monitored windows and goals will be displayed.
+If super_verbose is set to true. The details about extrapolation made on metric samples will be displayed.
 
 ### Get the cluster load
 Once Cruise Control Load Monitor shows it is in the RUNNING state, Users can use the following HTTP GET to get the cluster load:
 
-    GET /kafkacruisecontrol/load?time=[TIMESTAMP]&granularity=[GRANULARITY]
+    GET /kafkacruisecontrol/load?time=[TIMESTAMP]&allow_capacity_estimation=[true/false]&json=[true/false]
 
 When the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
 
-The valid granularity settings are: `broker` and `replica`. The broker level load gives a summary of the workload on the brokers in the Kafka cluster. The replica granularity returns the detail workload of each replicas in the cluster in an XML format. The replica level information could be prohibitively big if the cluster hosts a lot of replicas.
+If allow_capacity_estimation is set to true, for brokers missing capacity information Cruise Control will make estimations based on other brokers in the cluster; otherwise an IllegalStateException will be thrown in response. 
+
+The response contains both load-per-broker and load-per-host information. This is specifically useful when multiple broker are running on the same machine.
 
 NOTE: The load shown is only for the load from the valid partitions. i.e the partitions with enough metric samples. Even if the monitored valid partition percentage is lower than the configured percentage (e.g. 98%), the load will still be returned. So please always verify the Load Monitor state to decide whether the workload is representative enough.
 
 ### Query the partition resource utilization
 The following GET request gives the partition load sorted by the utilization of a given resource:
 
-    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]
+    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]&topic=[TOPIC]&partition=[START_PARTITION_INDEX-END_PARTITION_INDEX]&allow_capacity_estimation=[true/false]
 
-The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster.
+The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster. 
+
+By specifying `topic` and `partition` parameter, client can filter returning TopicPartition entries in response. `topic` value will be treated as a regular expression; `partition` value can be set to a single number(e.g. partition=15) or a range(e.g. partition=0-10)
+
+### Get partition and replica state
+The following GET request gives partition healthiness on the cluster:
+
+    GET /kafkacruisecontrol/kafka_cluster_state?json=[true/false]&verbose=[true/false]
+
+The returned result shows distribution of leader/follower/out-of-sync replica on each broker of the cluster and information about online(if verbose=true)/offline/under-replicated partition.
 
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
 
-    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]
+    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]
 
 Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal to serve when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the `ignore_proposal_cache` flag to true. The precomputing always uses available valid partitions to generate the proposals.
 
@@ -103,6 +116,7 @@ After the linear regression model training is done (users can check the state of
 The post requests of Kafka Cruise Control REST API are operations that will have impact on the Kafka cluster. The post operations include:
 * Add a list of new brokers to Kafka
 * Decommission a broker from the Kafka cluster
+* Demoting a broker from the Kafka cluster
 * Trigger a workload balance
 * Stop the current proposal execution task
 * Pause metrics load sampling
@@ -115,7 +129,7 @@ All the POST actions except stopping current execution task has a dry-run mode, 
 ### Add brokers to the Kafka cluster
 The following POST request adds the given brokers to the Kafka cluster
 
-    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&dryrun=[true/false]&throttle_added_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]
+    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&dryrun=[true/false]&throttle_added_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]
 
 When adding new brokers to a Kafka cluster, Cruise Control makes sure that the replicas will only be moved from the existing brokers to the given broker, but not moved among existing brokers. 
 
@@ -124,16 +138,23 @@ Users can choose whether to throttle the newly added broker during the partition
 ### Remove a broker from the Kafka cluster
 The following POST request removes a broker from the Kafka cluster:
 
-    POST /kafkacruisecontrol/remove_broker?brokerid=[id1, id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]
+    POST /kafkacruisecontrol/remove_broker?brokerid=[id1, id2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]
 
 Similar to adding broker to a cluster, removing a broker from a cluster will only move partitions from the broker to be removed to the other existing brokers. There won't be partition movements among remaining brokers.
 
 User can choose whether to throttle the removed broker during the partition movement. If the removed broker is unthrottled, there might be more than `num.concurrent.partition.movements.per.broker` moving into that broker concurrently.
 
+### Demote a broker from the Kafka cluster
+The following POST request moves all the leader replica away from a broker.
+
+    POST /kafkacruisecontrol/demote_broker?brokerid=[id1, id2...]&dryrun=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]
+
+Demoting a broker will only do preferred leader election to move leader replica out of the broker. There won't be PLE among remaining brokers.
+
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]
 
 **goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
 
@@ -150,16 +171,16 @@ By default the rebalance will be in DryRun mode. Please explicitly set dryrun to
 ### Stop an ongoing rebalance
 The following POST request will let Kafka Cruise Control stop an ongoing `rebalance`, `add_broker`, or `remove_broker` operation:
 
-    POST /kafkacruisecontrol/stop_proposal_execution
+    POST /kafkacruisecontrol/stop_proposal_execution?json=[true/false]
 
 Note that Cruise Control does not wait for the ongoing batch to finish when it stops execution, i.e. the in-progress batch may still be running after Cruise Control stops the execution.
 
 ### Pause metrics load sampling
 The following POST request will let Kafka Cruise Control pause an ongoing metrics sampling process:
 
-    POST /kafkacruisecontrol/pause_sampling
+    POST /kafkacruisecontrol/pause_sampling?json=[true/false]
 
 ### Resume metrics load sampling
 The following POST request will let Kafka Cruise Control resume a paused metrics sampling process:
 
-    POST /kafkacruisecontrol/resume_sampling
+    POST /kafkacruisecontrol/resume_sampling?json=[true/false]
