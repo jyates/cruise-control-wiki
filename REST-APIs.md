@@ -1,7 +1,12 @@
-## A NOTE ON USING COOKIES
-For `POST` requests, make sure that your endpoint requests use cookies, explicitly. CC requests have been redesigned as async calls to avoid blocking. Hence, if you don't use cookies, you won't be able to see the server response if it takes longer than a predefined time (default: `10 seconds`) even the session has not expired yet (default: `5 minutes`). Also, such requests will each create a new session and excessive number of ongoing requests will make CC unable to create a new session due to hitting the maximum number of sessions limit. `GET` requests that are sent via a web browser typically use cookies by default; hence, you will preserve the session upon multiple calls to the same endpoint via a web browser.
+## A NOTE ON USING UUID/COOKIES
+For all the requests, make sure that you interact with endpoint using UUID or cookies, explicitly. CC requests have been redesigned as async calls to avoid blocking. Hence, if you don't use UUID nor cookies, you won't be able to see the server response if it takes longer than a predefined time (default: `10 seconds`). You can retrieve the response within a predefined time(default: `6 hours`) using the UUID returned in initial response; or you can reuse the session to get response if the session has not expired (default: `5 minutes`). If you do not specify cookie/UUID in subsequent requests, such requests will each create a new session and excessive number of ongoing requests will make CC unable to create a new session due to hitting the maximum number of sessions limit. `GET` requests that are sent via a web browser typically use cookies by default; hence, you will preserve the session upon multiple calls to the same endpoint via a web browser.
 
-* Here is a quick recap of how to use cookies with `POST` requests using `cURL`:
+* Here is a quick recap of how to use UUID with requests using `cURL`:
+1. Create a cookie associated with a new request: `curl -X POST -c /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false&kafka_assigner=true"`
+2. Record the User-Task-ID in response: `User-Task-ID: 5ce7c299-53b3-48b6-b72e-6623e25bd9a8`
+2. Specifying the User-Task-ID in request that has not completed: `curl -X POST -H "User-Task-ID: 5ce7c299-53b3-48b6-b72e-6623e25bd9a8" "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false&kafka_assigner=true"`
+
+* Here is a quick recap of how to use cookies with requests using `cURL`:
 1. Create a cookie associated with a new request: `curl -X POST -c /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false&kafka_assigner=true"`
 2. Use an existing cookie from the created file for a request that has not completed: `curl -X POST -b /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false&kafka_assigner=true"`
 
@@ -14,6 +19,7 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 * Get optimization proposals
 * Bootstrap the load monitor
 * Train the Linear Regression Model
+* Query the active/completed task within Cruise Control
 
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
@@ -76,7 +82,7 @@ The returned result shows distribution of leader/follower/out-of-sync replica on
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
 
-    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]
+    GET /kafkacruisecontrol/proposals?goals=[goal1,goal2...]&verbose=[true/false]&ignore_proposal_cache=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&excluded_topics=[TOPIC]&use_ready_default_goals=[true/false]
 
 Kafka cruise control tries to precompute the optimization proposal in the background and caches the best proposal to serve when user queries. If users want to have a fresh proposal without reading it from the proposal cache, set the `ignore_proposal_cache` flag to true. The precomputing always uses available valid partitions to generate the proposals.
 
@@ -87,6 +93,10 @@ If `verbose` is turned on, Cruise Control will return all the generated proposal
 Users can specify `data_from` to indicate if they want to run the goals with available `valid_windows` or available `valid_partitions` (default: `valid_windows`).
 
 If `kafka_assigner` is turned on, the proposals will be generated in Kafka Assigner mode. This mode performs optimizations using the goals specific to Kafka Assigner -- i.e. goals with name `KafkaAssigner*`.
+
+Users can specify `excluded_topics` to prevent certain topics' replicas from moving in the generated proposals.
+
+If `use_ready_default_goals` is turned on, Cruise Control will use whatever ready goals(based on available metric data) to calculate the proposals.
 
 ### Bootstrap the load monitor (NOT RECOMMENDED)
 **(This is not recommended because it may cause the inaccurate partition traffic profiling due to missing metadata. Using the SampleStore is always the preferred way.)**
@@ -115,6 +125,11 @@ If use.linear.regression.model is set to true, user have to train the linear reg
 
 After the linear regression model training is done (users can check the state of Kafka Cruise Control).
 
+### Get the active/completed task list
+The following get request allows user to fetch the complete list of all the active tasks currently running/queuing inside Cruise Control and completed tasks which has not get recycled, together with the initial request detail(request time/IP address/request parameter) and UUID. User can use the returned UUID to fetch the final response of these requests.
+
+    GET /kafkacruisecontrol/user_tasks?json=[true/false]
+
 ## POST Requests
 The post requests of Kafka Cruise Control REST API are operations that will have impact on the Kafka cluster. The post operations include:
 * Add a list of new brokers to Kafka
@@ -130,20 +145,24 @@ All the POST actions except stopping current execution task has a dry-run mode, 
 ### Add brokers to the Kafka cluster
 The following POST request adds the given brokers to the Kafka cluster
 
-    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_added_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]
+    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_added_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]
 
 When adding new brokers to a Kafka cluster, Cruise Control makes sure that the replicas will only be moved from the existing brokers to the given broker, but not moved among existing brokers. 
 
 Users can choose whether to throttle the newly added broker during the partition movement. If the new brokers are throttled, the number of partition concurrently moving into a broker is gated by the request parameter `concurrent_partition_movements_per_broker` or config value `num.concurrent.partition.movements.per.broker` (if request parameter is not set). Similarly, number of concurrent preferred leader election is gated by request parameter `concurrent_leader_movements` or config value `num.concurrent.leader.movements`.
 
+Set `skip_hard_goal_check` to true enforcing a sanity check that all the hard goals are included in the `goals` parameter, otherwise an exception will be thrown.
+
 ### Remove a broker from the Kafka cluster
 The following POST request removes a broker from the Kafka cluster:
 
-    POST /kafkacruisecontrol/remove_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]
+    POST /kafkacruisecontrol/remove_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]
 
 Similar to adding broker to a cluster, removing a broker from a cluster will only move partitions from the broker to be removed to the other existing brokers. There won't be partition movements among remaining brokers.
 
 Users can choose whether to throttle the removed broker during the partition movement. If the removed brokers are throttled, the number of partition concurrently moving into a broker and concurrent prefer leader election is gated in the same way as add_broker above.
+
+Note if the topics specified in `excluded_topics` has replicas on the removed broker, the replicas will still get moved off the broker.
 
 ### Demote a broker from the Kafka cluster
 The following POST request moves all the leader replica away from a broker.
@@ -155,7 +174,7 @@ Demoting a broker will only do preferred leader election to move leader replica 
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]
 
 **goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
 
