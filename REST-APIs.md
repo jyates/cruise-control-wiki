@@ -19,12 +19,12 @@ The GET requests in Kafka Cruise Control REST API are for read only operations, 
 * Get optimization proposals
 * Bootstrap the load monitor
 * Train the Linear Regression Model
-* Query the active/completed task within Cruise Control
+* Query the active/completed task result within Cruise Control
 
 ### Get the state of Kafka Cruise Control
 User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
 
-    GET /kafkacruisecontrol/state?verbose=[true/false]&super_verbose=[true/false]&json=[true/false]&substates=[ANALYZER, MONITOR, EXECUTOR]
+    GET /kafkacruisecontrol/state?verbose=[true/false]&super_verbose=[true/false]&json=[true/false]&substates=[ANALYZER, MONITOR, EXECUTOR,ANOMALY_DETECTOR]
 
 The returned state contains the following information:
 * Monitor State:
@@ -43,17 +43,23 @@ The returned state contains the following information:
 * Analyzer State:
   * isProposalReady: Is there a proposal cached
   * ReadyGoals: A list of goals that are ready for running
+* Anomaly Detector State:
+  * selfHealingEnabled: Anomaly type for which self healing is enabled
+  * selfHealingDisabled: Anomaly type for which self healing is disabled
+  * recentGoalViolations: Recently detected goal violations
+  * recentBrokerFailures: Recently detected broker failures
+  * recentMetricAnomalies: Recently detected goal metric anomalies
 
-If verbose is set to true. The details about monitored windows and goals will be displayed.
-If super_verbose is set to true. The details about extrapolation made on metric samples will be displayed.
-If substates is not set, the full state will be displayed; if it is set to the specific subsystem(s), only state of that subsystem(s) will be displayed and response will be returned faster.
+If verbose is set to true, the details about monitored windows and goals will be displayed.
+If super_verbose is set to true, the details about extrapolation made on metric samples will be displayed.
+If substates is not set, the full state will be displayed; if it is set to the specific substate(s), only state(s) of interest will be displayed and response will be returned faster.
 
 ### Get the cluster load
 Once Cruise Control Load Monitor shows it is in the RUNNING state, Users can use the following HTTP GET to get the cluster load:
 
     GET /kafkacruisecontrol/load?time=[TIMESTAMP]&allow_capacity_estimation=[true/false]&json=[true/false]
 
-When the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
+If the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
 
 If allow_capacity_estimation is set to true, for brokers missing capacity information Cruise Control will make estimations based on other brokers in the cluster; otherwise an IllegalStateException will be thrown and shown in response. By default it is true.
 
@@ -66,18 +72,20 @@ The following GET request gives the partition load sorted by the utilization of 
 
     GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]&topic=[TOPIC]&partition=[START_PARTITION_INDEX-END_PARTITION_INDEX]&allow_capacity_estimation=[true/false]&min_valid_partition_ratio=[PERCENTAGE]&max_load=[true/false]
 
-The returned result would be a partition list sorted by the utilization of the specified resource in the given time window. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster. 
+The returned result would be a partition list sorted by the utilization of the specified resource in the time range specified by `start` and `end`. The resource can be `CPU`, `NW_IN`, `NW_OUT` and `DISK`. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster. 
 
-By specifying `topic` and `partition` parameter, client can filter returned TopicPartition entries. `topic` value will be treated as a regular expression; `partition` value can be set to a single number(e.g. partition=15) or a range(e.g. partition=0-10)
+By specifying `topic` and `partition` parameter, client can filter returned TopicPartition entries. `topic` value will be treated as a regular expression; `partition` value can be set to a single number(e.g. `partition=15`) or a range(e.g. `partition=0-10`)
 
-The min_valid_partition_ratio specifies minimal monitored valid partition percentage needed to calculate the partition load. If this parameter is not set in request, the config value `min.valid.partition.ratio` will be used.
+The `min_valid_partition_ratio` specifies minimal monitored valid partition percentage needed to calculate the partition load. If this parameter is not set in request, the config value `min.valid.partition.ratio` will be used.
+
+The `max_load` parameter specifies whether report the maximal historical value or average historical value.
 
 ### Get partition and replica state
 The following GET request gives partition healthiness on the cluster:
 
     GET /kafkacruisecontrol/kafka_cluster_state?json=[true/false]&verbose=[true/false]
 
-The returned result shows distribution of leader/follower/out-of-sync replica on each broker of the cluster and information about online(if verbose=true)/offline/under-replicated partitions.
+The returned result shows distribution of leader/follower/out-of-sync replica information on each broker of the cluster and leader/follower/in-sync/out-of-sync replica information for online(if `verbose`=true)/offline/under-replicated partitions.
 
 ### Get optimization proposals
 The following GET request returns the optimization proposals generated based on the workload model of the given timestamp. The workload summary before and after the optimization will also be returned.
@@ -126,9 +134,11 @@ If use.linear.regression.model is set to true, user have to train the linear reg
 After the linear regression model training is done (users can check the state of Kafka Cruise Control).
 
 ### Get the active/completed task list
-The following get request allows user to fetch the complete list of all the active tasks currently running/queuing inside Cruise Control and completed tasks which has not get recycled, together with the initial request detail(request time/IP address/request parameter) and UUID. User can use the returned UUID to fetch the final response of these requests.
+The following get request allows user to get a full list of all the active/completed(and not recycled) tasks inside Cruise Control, with their initial request detail(request time/IP address/request URL and parameter) and UUID information. User can then use the returned UUID and URL to fetch the result of the specific request.
 
-    GET /kafkacruisecontrol/user_tasks?json=[true/false]
+    GET /kafkacruisecontrol/user_tasks?json=[true/false]&user_task_ids=[list_of_UUID]
+
+User can use `user_task_ids` make Cruise Control only return requests they are interested. By default all the requests get returned.
 
 ## POST Requests
 The post requests of Kafka Cruise Control REST API are operations that will have impact on the Kafka cluster. The post operations include:
