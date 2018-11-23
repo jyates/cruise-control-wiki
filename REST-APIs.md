@@ -143,50 +143,56 @@ User can use `user_task_ids` make Cruise Control only return requests they are i
 ## POST Requests
 The post requests of Kafka Cruise Control REST API are operations that will have impact on the Kafka cluster. The post operations include:
 * Add a list of new brokers to Kafka
-* Decommission a broker from the Kafka cluster
-* Demoting a broker from the Kafka cluster
+* Decommission a list of brokers from the Kafka cluster
+* Demoting a list of brokers from the Kafka cluster
 * Trigger a workload balance
 * Stop the current proposal execution task
 * Pause metrics load sampling
 * Resume metrics load sampling
 
-All the POST actions except stopping current execution task has a dry-run mode, which only generate the rebalance proposals and estimated result but not really execute the proposals. To avoid accidentally triggering of data movement, by default all the POST actions are in dry-run mode. To let Kafka Cruise Control actually move data, users need to explicitly set dryrun=false.
+Most of the POST actions has a dry-run mode, which only generate the proposals and estimated result but not really execute the proposals. To avoid accidentally triggering of data movement, by default all the POST actions are in dry-run mode. To let Kafka Cruise Control actually move data, users need to explicitly set dryrun=false.
 
 ### Add brokers to the Kafka cluster
 The following POST request adds the given brokers to the Kafka cluster
 
-    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_added_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]
+    POST /kafkacruisecontrol/add_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_added_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]&verbose=[true/false]
 
-When adding new brokers to a Kafka cluster, Cruise Control makes sure that the replicas will only be moved from the existing brokers to the given broker, but not moved among existing brokers. 
+When adding new brokers to a Kafka cluster, Cruise Control makes sure that the replicas will only be moved from the existing brokers to the provided new broker, but not moved among existing brokers. 
 
-Users can choose whether to throttle the newly added broker during the partition movement. If the new brokers are throttled, the number of partition concurrently moving into a broker is gated by the request parameter `concurrent_partition_movements_per_broker` or config value `num.concurrent.partition.movements.per.broker` (if request parameter is not set). Similarly, number of concurrent preferred leader election is gated by request parameter `concurrent_leader_movements` or config value `num.concurrent.leader.movements`.
+Users can choose whether to throttle the newly added broker during the partition movement. If the new brokers are throttled, the number of partitions concurrently moving into a broker is gated by the request parameter `concurrent_partition_movements_per_broker` or config value `num.concurrent.partition.movements.per.broker` (if request parameter is not set). Similarly, the number of concurrent partition leadership changes is gated by request parameter `concurrent_leader_movements` or config value `num.concurrent.leader.movements`.
 
 Set `skip_hard_goal_check` to true enforcing a sanity check that all the hard goals are included in the `goals` parameter, otherwise an exception will be thrown.
 
 ### Remove a broker from the Kafka cluster
 The following POST request removes a broker from the Kafka cluster:
 
-    POST /kafkacruisecontrol/remove_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]
+    POST /kafkacruisecontrol/remove_broker?brokerid=[id1,id2...]&goals=[goal1,goal2...]&dryrun=[true/false]&throttle_removed_broker=[true/false]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&data_from=[valid_windows/valid_partitions]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]&verbose=[true/false]
 
-Similar to adding broker to a cluster, removing a broker from a cluster will only move partitions from the broker to be removed to the other existing brokers. There won't be partition movements among remaining brokers.
+Similar to adding brokers to a cluster, removing brokers from a cluster will only move partitions from the brokers to be removed to the other existing brokers. There won't be partition movements among remaining brokers.
 
-Users can choose whether to throttle the removed broker during the partition movement. If the removed brokers are throttled, the number of partition concurrently moving into a broker and concurrent prefer leader election is gated in the same way as add_broker above.
+Users can choose whether to throttle the removed broker during the partition movement. If the removed brokers are throttled, the number of partitions concurrently moving out of a broker and concurrent partition leadership changes are gated in the same way as add_broker above.
 
 Note if the topics specified in `excluded_topics` has replicas on the removed broker, the replicas will still get moved off the broker.
 
 ### Demote a broker from the Kafka cluster
-The following POST request moves all the leader replica away from a broker.
+The following POST request moves all the leader replicas away from a list of brokers.
 
-    POST /kafkacruisecontrol/demote_broker?brokerid=[id1, id2...]&dryrun=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_leader_movements=[concurrency]
+    POST /kafkacruisecontrol/demote_broker?brokerid=[id1, id2...]&dryrun=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_leader_movements=[concurrency]&verbose=[true/false]&skip_urp_demotion=[true/false]&exclude_follower_demotion=[true/false]
 
-Demoting a broker will only do preferred leader election to move leader replica out of the broker. There won't be PLE among remaining brokers.
+Demoting a broker is consist of tow steps.
+  * Make all the replicas on given brokers the least preferred replicas for leadership election
+    within their corresponding partitions
+  * Trigger a preferred leader election on the partitions to migrate
+     the leader replicas off the brokers
+
+Set `skip_urp_demotion` to true will skip the operations on partitions which is currently under replicated; Set `exclude_follower_demotion` will skip operations on the partitions which only have follower replicas on the brokers to be demoted. The purpose of these two parameters is to avoid the URP recovery process blocking demoting broker execution.
 
 ### Rebalance a cluster
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
-    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]
+    POST /kafkacruisecontrol/rebalance?goals=[goal1,goal2...]&dryrun=[true/false]&data_from=[valid_windows/valid_partitions]&kafka_assigner=[true/false]&json=[true/false]&allow_capacity_estimation=[true/false]&concurrent_partition_movements_per_broker=[concurrency]&concurrent_leader_movements=[concurrency]&skip_hard_goal_check=[true/false]&excluded_topics=[TOPICS]&use_ready_default_goals=[true/false]&verbose=[true/false]
 
-**goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
+Similar to the GET interface for getting proposals, the rebalance can also be based on available valid windows or available valid partitions.
 
 **valid_windows:** rebalance the cluster based on the information in the available valid snapshot windows. A valid snapshot window is a windows whose valid monitored partitions coverage meets the requirements of all the goals. (This is the default behavior)
 
@@ -194,11 +200,13 @@ The following POST request will let Kafka Cruise Control rebalance a Kafka clust
 
 Users can only specify either `valid_windows` or `valid_partitions`, but not both.
 
+**goals:** a list of goals to use for rebalance. When goals is provided, the cached proposals will be ignored.
+
 When rebalancing a cluster, all the brokers in the cluster are eligible to give / receive replicas. All the brokers will be throttled during the partition movement.
 
-By default the rebalance will be in DryRun mode. Please explicitly set dryrun to false to execute the proposals. Similar to the GET interface for getting proposals, the rebalance can also be based on available valid windows or available valid partitions.
+By default the rebalance will be in DryRun mode. Please explicitly set dryrun to false to execute the proposals. 
 
-### Stop an ongoing rebalance
+### Stop an ongoing execution
 The following POST request will let Kafka Cruise Control stop an ongoing `rebalance`, `add_broker`,  `remove_broker` or `demote_broker` operation:
 
     POST /kafkacruisecontrol/stop_proposal_execution?json=[true/false]
