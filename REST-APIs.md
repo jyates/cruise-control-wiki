@@ -61,6 +61,8 @@ Once Cruise Control Load Monitor shows it is in the RUNNING state, Users can use
 
 If the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
 
+TIMESTAMP is in milliseconds since the epoch; what System.currentTimeMillis() returns.  The time zone is the time zone of the Cruise Control server.
+
 If allow_capacity_estimation is set to true, for brokers missing capacity information Cruise Control will make estimations based on other brokers in the cluster; otherwise an IllegalStateException will be thrown and shown in response. By default it is true.
 
 The response contains both load-per-broker and load-per-host information. This is specifically useful when multiple brokers are hosted by the same machine.
@@ -72,7 +74,7 @@ The following GET request gives the partition load sorted by the utilization of 
 
     GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]&topic=[TOPIC]&partition=[START_PARTITION_INDEX-END_PARTITION_INDEX]&allow_capacity_estimation=[true/false]&min_valid_partition_ratio=[PERCENTAGE]&max_load=[true/false]
 
-The returned result would be a partition list sorted by the utilization of the specified resource in the time range specified by `start` and `end`. The resource can be `CPU`, `NW_IN`, `NW_OUT` and `DISK`. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster. 
+The returned result would be a partition list sorted by the utilization of the specified resource in the time range specified by `start` and `end`. The resource can be `CPU`, `NW_IN`, `NW_OUT` and `DISK`. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster.  This is in milliseconds since the epoch; what System.currentTimeMillis() returns.  The time zone is the time zone of the Cruise Control server.
 
 By specifying `topic` and `partition` parameter, client can filter returned TopicPartition entries. `topic` value will be treated as a regular expression; `partition` value can be set to a single number(e.g. `partition=15`) or a range(e.g. `partition=0-10`)
 
