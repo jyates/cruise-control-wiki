@@ -6,5 +6,6 @@
 ** [[Pluggable Components | Pluggable Components]]
 ** [[Configurations | Configurations]]
 ** [[Sensors | Sensors]]
+** [[2 step verification for POST requests | 2 step verification for POST requests]]
 * '''Developer's Guide'''
 ** [[Write your own goals | Write your own goals]]
