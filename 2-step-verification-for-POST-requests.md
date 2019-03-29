@@ -1,9 +1,9 @@
-Support for 2-step verification (aka `peer-review` for `POST` requests) has been added in [#582](https://github.com/linkedin/cruise-control/pull/582), and is available in versions `2.0.37` and `0.1.40` (see [releases](https://github.com/linkedin/cruise-control/releases)).
+Support for 2-step verification (aka `peer-review` for `POST` requests) has been added in [#582](https://github.com/linkedin/cruise-control/pull/582), and is available in versions `2.0.38` and `0.1.41` (see [releases](https://github.com/linkedin/cruise-control/releases)).
 
 ## Motivation
 `POST` requests enable users to perform various admin operations for cluster maintenance in Kafka clusters. However, if users mistype a command, it is possible to start an unintended execution (e.g. remove `broker-X` rather than `broker-Y`).
 
-2-step verification aims to help users verify the command they (or their peers) intend to run by letting them review requests explicitly to approve or cancel them, and enable execution of only the approved requests.
+2-step verification aims to help users verify the command they (or their peers) intend to run by letting them review requests explicitly to approve or discard them, and enable execution of only the approved requests.
 
 ## How can I enable 2-step verification for POST requests?
 Set `two.step.verification.enabled` config to `true` in your `config/cruisecontrol.properties`.
@@ -29,19 +29,21 @@ The process of submitting a new request for review does not require extra user-i
 
     POST /kafkacruisecontrol/review?json=[true/false]&approve=[id1,id2,...]&discard=[id1,id2,...]&reason=[reason-for-review]
 
-Note that each `id` corresponds to an individual request that is pending review. Supported state transitions are (1) `PENDING_REVIEW` -> {`APPROVED`, `DISCARDED`} and (2) `APPROVED` -> {`DISCARDED`, `SUBMITTED`}
+Note that each `id` corresponds to an individual request that is pending review. Supported state transitions are (1) `PENDING_REVIEW` -> {`APPROVED`, `DISCARDED`} and (2) `APPROVED` -> {`DISCARDED`, `SUBMITTED`}. A valid request provides at least one of `approve` or `discard` parameter with one or more valid review ids to review.
 
 ### Executing an approved `POST` request
 An approved request can be executed by sending a request for the reviewed `endpoint` with the approved `review_id`. For example, if a `rebalance` request was reviewed with `reviewId=42`, then we can execute this request via the following command:
 
     POST /kafkacruisecontrol/rebalance?review_id=42
 
-The response for the above request will be an `OptimizationResult` or potentially a progress response since this is an async endpoint.
+The response for the above request will be an `OptimizationResult` or potentially a progress response since this is an async endpoint. Note that specifying `json` parameter is not allowed here, because the all parameters regarding the request are already specified in the original request (and are being reviewed by this request).
 
 ### Checking the requests that are `PENDING_REVIEW`, `APPROVED`, `SUBMITTED`, or `DISCARDED`
-The following command returns the requests in purgatory (a.k.a. Review Board):
+The following command returns the requests in the `Review Board`:
 
-    POST /kafkacruisecontrol/review?json=[true/false]
+    GET /kafkacruisecontrol/review_board?json=[true/false]&amp;review_ids=[id1,id2,...]
+
+If `review_ids` is not provided, there won't be any filtering based on review ids in the returned response.
 
 ## How do I adjust retention of requests in my Purgatory (a.k.a. Review Board)
 You may set the following relevant configs in your `config/cruisecontrol.properties` file:
