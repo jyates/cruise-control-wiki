@@ -8,5 +8,5 @@
 ** [[Sensors | Sensors]]
 ** [[2 step verification for POST requests | 2 step verification for POST requests]]
 ** [[Configure Slack notifications | Configure Slack notifications]]
-* '''Developer's Guide'''
+* '''Developer Guide'''
 ** [[Write your own goals | Write your own goals]]
