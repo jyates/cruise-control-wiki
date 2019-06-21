@@ -8,6 +8,7 @@
 ** [[Sensors | Sensors]]
 ** [[2 step verification for POST requests | 2 step verification for POST requests]]
 ** [[Configure Slack notifications | Configure Slack notifications]]
+** [[Secure zookeeper configuration | Secure zookeeper configuration]]
 * '''Python Client'''
 ** [[README | README]]
 * '''Developer Guide'''
