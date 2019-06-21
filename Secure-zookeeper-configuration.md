@@ -1,4 +1,4 @@
-#Secure zookeeper configuration
+# Secure zookeeper configuration
 
 Cruise Control uses zookeeper clients for its operation. If the zookeeper is secured, the following
 steps are to be taken care of so that the zookeeper client authenticates successfully.
