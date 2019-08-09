@@ -11,6 +11,8 @@
 ** [[Secure zookeeper configuration | Secure zookeeper configuration]]
 ** [[Change topic replication factor though Cruise Control | Change topic replication factor though Cruise Control]]
 * '''Python Client'''
-** [[README | README]]
+** [[Getting Started | Getting Started]]
+** [[cccli Command Line Usage | cccli Command Line Usage]]
+** [[cruise control client Usage in Python Applications | cruise control client Usage in Python Applications]]
 * '''Developer Guide'''
 ** [[Write your own goals | Write your own goals]]
