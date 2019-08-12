@@ -9,7 +9,7 @@
 ** [[2 step verification for POST requests | 2 step verification for POST requests]]
 ** [[Configure Slack notifications | Configure Slack notifications]]
 ** [[Secure zookeeper configuration | Secure zookeeper configuration]]
-** [[Change topic replication factor though Cruise Control | Change topic replication factor though Cruise Control]]
+** [[Change topic replication factor through Cruise Control | Change topic replication factor through Cruise Control]]
 * '''Python Client'''
 ** [[Getting Started | Getting Started]]
 ** [[cccli Command Line Usage | cccli Command Line Usage]]
