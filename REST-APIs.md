@@ -1,30 +1,49 @@
 ## A NOTE ON USING UUID/COOKIES
-For all the requests, make sure that you interact with endpoints using UUID or cookies, explicitly. CC requests have been redesigned as async calls to avoid blocking. Hence, if you don't use UUID nor cookies, you won't be able to see the server response if it takes longer than a predefined time (default: `10 seconds`). You can retrieve the response within a predefined time(default: `6 hours`) using the UUID returned in initial response; or you can reuse the session to get response if the session has not expired (default: `1 minutes`). If you do not specify cookie or UUID in subsequent requests, such requests will each create a new session and excessive number of ongoing requests will make CC unable to create a new session due to hitting the maximum number of active user task limit. `GET` requests that are sent via a web browser typically use cookies by default; hence, you will preserve the session upon multiple calls to the same endpoint via a web browser.
+For all the requests, make sure that you interact with endpoints using UUID or cookies, explicitly. Cruise Control requests have been redesigned as async calls to avoid blocking. Hence, if you don't use UUID nor cookies, you won't be able to see the server response if it takes longer than a predefined time (default: `10 seconds`). You can retrieve the response within a predefined time(default: `6 hours`) using the UUID returned in initial response; or you can reuse the session to get response if the session has not expired (default: `1 minutes`). If you do not specify UUID or cookie in subsequent requests, such requests will each create a new session and excessive number of ongoing requests will make CC unable to create a new session due to hitting the maximum number of active user task limit. `GET` requests that are sent via a web browser typically use cookies by default; hence, you will preserve the session upon multiple calls to the same endpoint via a web browser.
 
-* Here is a quick recap of how to use UUID with requests using `cURL`:
-1. Create a cookie associated with a new request: `curl -vv -X POST -c /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
-2. Record the User-Task-ID in response: `User-Task-ID: 5ce7c299-53b3-48b6-b72e-6623e25bd9a8`
-2. Specifying the User-Task-ID in request that has not completed: `curl -vv -X POST -H "User-Task-ID: 5ce7c299-53b3-48b6-b72e-6623e25bd9a8" "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
+* Here is a quick recap of how to use **UUID** with requests using `cURL`:
+1. Create a cookie associated with a new request
 
-* Here is a quick recap of how to use cookies with requests using `cURL`:
-1. Create a cookie associated with a new request: `curl -X POST -c /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
-2. Use an existing cookie from the created file for a request that has not completed: `curl -X POST -b /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
+ `curl -vv -X POST -c /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
+
+2. Record the User-Task-ID in response, e.g. `User-Task-ID: 5ce7c299-53b3-48b6-b72e-6623e25bd9a8`
+3. Specifying the User-Task-ID in request that has not completed
+
+ `curl -vv -X POST -H "User-Task-ID: 5ce7c299-53b3-48b6-b72e-6623e25bd9a8" "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
+
+* Here is a quick recap of how to use **cookies** with requests using `cURL`:
+1. Create a cookie associated with a new request
+
+ `curl -X POST -c /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
+
+2. Use an existing cookie from the created file for a request that has not completed
+
+ `curl -X POST -b /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:2540/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
 
 ## GET REQUESTS
 The GET requests in Kafka Cruise Control REST API are for read only operations, i.e. the operations that do not have any external impacts. The GET requests include the following operations:
-* Query the state of Cruise Control
-* Query the current cluster load
-* Query partition resource utilization
-* Query partition and replica state
-* Get optimization proposals
-* Bootstrap the load monitor
-* Train the Linear Regression Model
-* Query the active/completed task result within Cruise Control
+* [Query the state of Cruise Control](#query-the-state-of-cruise-control)
+* [Query the current cluster load](#query-the-current-cluster-load)
+* [Query partition resource utilization](#query-partition-resource-utilization)
+* [Query partition and replica state](#query-partition-and-replica-state)
+* [Get optimization proposals](#get-optimization-proposals)
+* [Bootstrap the load monitor](#bootstrap-the-load-monitor)
+* [Train the Linear Regression Model](#train-the-linear-regression-model)
+* [Query the user request result](#query-the-user-request-result)
 
-### Get the state of Kafka Cruise Control
-User can query the state of Kafka Cruise Control at any time by issuing an HTTP GET request.
+### Query the state of Cruise Control
+User can query the state of Kafka Cruise Control at any time by issuing a HTTP GET request.
 
-    GET /kafkacruisecontrol/state?verbose=[true/false]&super_verbose=[true/false]&json=[true/false]&substates=[ANALYZER, MONITOR, EXECUTOR,ANOMALY_DETECTOR]
+    GET /kafkacruisecontrol/state
+
+Supported parameters are:
+
+| PARAMETER   | TYPE       | DESCPRIPTION | DEFAULT  | OPTIONAL|
+|-------------|------------|----------------------|----------|---------|
+| substates     | list    | list of components to return their states, available components are analyzer, monitor, executor, anomaly_detector     | all the components      |   yes | 
+| json     | boolean    | return in JSON format or not      | false      |   yes | 
+| verbose     | boolean    | return detailed state information      | false      |   yes | 
+| super_verbose     | boolean    | return more detailed state information      | false      |   yes | 
 
 The returned state contains the following information:
 * Monitor State:
@@ -33,13 +52,17 @@ The returned state contains the following information:
   * Number of valid monitored windows / Number of total monitored windows
   * Number of valid partitions out of the total number of partitions
   * Percentage of the partitions that are valid
+  * Time and reason of recently sampling task pause/resume
 * Executor State:
   * State: **NO_TASK_IN_PROGRESS** /
 	   **EXECUTION_STARTED** /
 	   **REPLICA_MOVEMENT_IN_PROGRESS** /
 	   **LEADER_MOVEMENT_IN_PROGRESS**
-  * Total number of replicas to move (if state is REPLICA_MOVEMENT_IN_PROGRESS)
-  * Number of replicas finished movement (if state is REPLICA_MOVEMENT_IN_PROGRESS)
+  * Inter-broker replica movement progress (if state is INTER_BROKER_REPLICA_MOVEMENT_IN_PROGRESS)
+  * Intra-broker replica movement progress (if state is INTRA_BROKER_REPLICA_MOVEMENT_IN_PROGRESS)
+  * Leadership movement progress (if state is LEADERSHIP_MOVEMENT)
+  * movement concurrency
+  * UUID triggers the execution
 * Analyzer State:
   * isProposalReady: Is there a proposal cached
   * ReadyGoals: A list of goals that are ready for running
@@ -48,31 +71,59 @@ The returned state contains the following information:
   * selfHealingDisabled: Anomaly type for which self healing is disabled
   * recentGoalViolations: Recently detected goal violations
   * recentBrokerFailures: Recently detected broker failures
+  * recentDiskFailures: Recently detected disk failures
   * recentMetricAnomalies: Recently detected goal metric anomalies
 
 If verbose is set to true, the details about monitored windows and goals will be displayed.
 If super_verbose is set to true, the details about extrapolation made on metric samples will be displayed.
 If substates is not set, the full state will be displayed; if it is set to the specific substate(s), only state(s) of interest will be displayed and response will be returned faster.
 
-### Get the cluster load
+### Query the current cluster load
 Once Cruise Control Load Monitor shows it is in the RUNNING state, Users can use the following HTTP GET to get the cluster load:
 
-    GET /kafkacruisecontrol/load?time=[TIMESTAMP]&allow_capacity_estimation=[true/false]&json=[true/false]
+    GET /kafkacruisecontrol/load
 
-If the time field is not provided, it is default to the wall clock time. If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
+Supported parameters are:
 
-TIMESTAMP is in milliseconds since the epoch; what System.currentTimeMillis() returns.  The time zone is the time zone of the Cruise Control server.
+| PARAMETER   | TYPE       | DESCPRIPTION | DEFAULT  | OPTIONAL|
+|-------------|------------|----------------------|----------|---------|
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| end     | long    | end time of the cluster load     | current system time|   yes |
+| time     | long    | end time of the cluster load     | current system time|   yes | 
+| allow_capacity_estimation     | boolean    | whether allow broker capacity be estimated     | true      |   yes | 
+| populate_disk_info     | boolean    | whether show the load of each disk broker uses    | false     |   yes | 
+| json     | boolean    | return in JSON format or not      | false      |   yes | 
+| verbose     | boolean    | return detailed state information      | false      |   yes | 
+
+If the number of workload snapshots before the given timestamp is not sufficient to generate a good load model, an exception will be returned.
+
+Timestamp for start/end/time is in milliseconds since the epoch; what System.currentTimeMillis() returns.  The time zone is the time zone of the Cruise Control server.
 
 If allow_capacity_estimation is set to true, for brokers missing capacity information Cruise Control will make estimations based on other brokers in the cluster; otherwise an IllegalStateException will be thrown and shown in response. By default it is true.
 
 The response contains both load-per-broker and load-per-host information. This is specifically useful when multiple brokers are hosted by the same machine.
 
-NOTE: The load shown is only for the load from the valid partitions. i.e the partitions with enough metric samples. So please always check the Monitor's state(via State endpoint) to decide whether the workload is representative enough.
+NOTE: The load shown is only for the load from the valid partitions. i.e the partitions with enough metric samples. So please always check the LoadMonitor's state(via State endpoint) to decide whether the workload is representative enough.
 
-### Query the partition resource utilization
+### Query partition resource utilization
 The following GET request gives the partition load sorted by the utilization of a given resource:
 
-    GET /kafkacruisecontrol/partition_load?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]&topic=[TOPIC]&partition=[START_PARTITION_INDEX-END_PARTITION_INDEX]&allow_capacity_estimation=[true/false]&min_valid_partition_ratio=[PERCENTAGE]&max_load=[true/false]
+    GET /kafkacruisecontrol/partition_load
+
+Supported parameters are:
+
+| PARAMETER   | TYPE       | DESCPRIPTION | DEFAULT  | OPTIONAL|
+|-------------|------------|----------------------|----------|---------|
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+| start     | long    | start time of the cluster load     | time of earliest window|   yes |
+?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]&topic=[TOPIC]&partition=[START_PARTITION_INDEX-END_PARTITION_INDEX]&allow_capacity_estimation=[true/false]&min_valid_partition_ratio=[PERCENTAGE]&max_load=[true/false]
+
+
 
 The returned result would be a partition list sorted by the utilization of the specified resource in the time range specified by `start` and `end`. The resource can be `CPU`, `NW_IN`, `NW_OUT` and `DISK`. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster.  This is in milliseconds since the epoch; what System.currentTimeMillis() returns.  The time zone is the time zone of the Cruise Control server.
 
