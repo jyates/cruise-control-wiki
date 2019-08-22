@@ -114,24 +114,26 @@ Supported parameters are:
 
 | PARAMETER   | TYPE       | DESCPRIPTION | DEFAULT  | OPTIONAL|
 |-------------|------------|----------------------|----------|---------|
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-| start     | long    | start time of the cluster load     | time of earliest window|   yes |
-?resource=[RESOURCE]&start=[START_TIMESTAMP]&end=[END_TIMESTAMP]&json=[true/false]&entries=[MAX_NUMBER_OF_PARTITION_LOAD_ENTRIES_TO_RETURN]&topic=[TOPIC]&partition=[START_PARTITION_INDEX-END_PARTITION_INDEX]&allow_capacity_estimation=[true/false]&min_valid_partition_ratio=[PERCENTAGE]&max_load=[true/false]
+| resource     | string    | resource type to sort partition load, available resource are `DISK`/`CPU`/`NW_IN`/`NW_OUT`    | DISK|   yes |
+| start     | long    | start time of the partition load     | time of earliest window|   yes |
+| end     | long    | end time of the partition load     | current system time|   yes |
+| entries     | integer    | number of partition load entries to report in response     | MAX_INT|   yes |
+| json     | boolean    | return in JSON format or not      | false      |   yes | 
+| allow_capacity_estimation     | boolean    | whether allow broker capacity be estimated     | true      |   yes |
+| max_load     | boolean    | whether report the max load for partition in window     | false|   yes |
+| avg_load     | boolean    | whether report the average load for partition in window     | false|   yes |
+| topic     | regex    | regular expression to filter partition load to report based on partition's topic    | Null|   yes |
+| partition     | integer/range    | partition number range to filter partition load to report     | Null|   yes |
+| min_valid_partition_ratio     | double    | minimal valid partition ratio requirement for cluster model    | Null  | yes |
+| brokerid     | int    | broker id to to filter partition load to report     | Null|   yes |
 
+The returned result would be a partition list sorted by the utilization of the specified resource in the time range specified by `start` and `end`. The resource can be `CPU`, `NW_IN`, `NW_OUT` and `DISK`. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster.
 
-
-The returned result would be a partition list sorted by the utilization of the specified resource in the time range specified by `start` and `end`. The resource can be `CPU`, `NW_IN`, `NW_OUT` and `DISK`. By default the `start` is the earliest monitored time, the `end` is current wall clock time, `resource` is `DISK`, and `entries` is the all partitions in the cluster.  This is in milliseconds since the epoch; what System.currentTimeMillis() returns.  The time zone is the time zone of the Cruise Control server.
-
-By specifying `topic` and `partition` parameter, client can filter returned TopicPartition entries. `topic` value will be treated as a regular expression; `partition` value can be set to a single number(e.g. `partition=15`) or a range(e.g. `partition=0-10`)
+By specifying `topic`,`partition` and/or `brokerid` parameter, client can filter returned TopicPartition entries. `topic` value will be treated as a regular expression; `partition` value can be set to a single number(e.g. `partition=15`) or a range(e.g. `partition=0-10`).
 
 The `min_valid_partition_ratio` specifies minimal monitored valid partition percentage needed to calculate the partition load. If this parameter is not set in request, the config value `min.valid.partition.ratio` will be used.
 
-The `max_load` parameter specifies whether report the maximal historical value or average historical value.
+The `max_load` parameter specifies whether report the maximal historical value or not. The `avg_load` parameter specifies whether report the average historical value or not. If both are not specified or specified as `false`, for `DISK` resource, latest value will be reported; for `NW_IN`/`NW_OUT`/`CPU` average value will be reported.
 
 ### Get partition and replica state
 The following GET request gives partition healthiness on the cluster:
