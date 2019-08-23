@@ -361,7 +361,7 @@ Demoting a broker/disk is consist of tow steps.
 
 Set `skip_urp_demotion` to true will skip the operations on partitions which is currently under replicated; Set `exclude_follower_demotion` will skip operations on the partitions which only have follower replicas on the brokers/disks to be demoted. The purpose of these two parameters is to avoid the URP recovery process blocking demoting execution.
 
-### Rebalance a cluster
+### Trigger a workload balance
 The following POST request will let Kafka Cruise Control rebalance a Kafka cluster
 
     POST /kafkacruisecontrol/rebalance
