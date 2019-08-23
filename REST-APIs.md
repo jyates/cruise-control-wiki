@@ -453,6 +453,7 @@ The following POST request can change topic's replication factor.
     POST /kafkacruisecontrol/topic_configuration?topic=[topic_regex]&replication_factor=[target_replication_factor]
 
 Supported parameters are:
+
 | PARAMETER   | TYPE       | DESCPRIPTION | DEFAULT  | OPTIONAL|
 |-------------|------------|----------------------|----------|---------|
 | dryrun     | Boolean    | Whether dry-run the request or not| true|   yes |
