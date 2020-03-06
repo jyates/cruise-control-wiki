@@ -4,7 +4,7 @@ Selected Cruise Control (CC) endpoints accept async calls to avoid blocking more
 (via `webserver.request.maxBlockTimeMs` configuration).
 If the server-side processing of such requests takes more than this configured time, along with a with `SC_ACCEPTED` code, 
 CC returns a progress response.
-This response contains both (1) a sessionId, and (2) a UUID corresponding to the client cookie and the request, respectively.
+This response contains both (1) a `sessionId`, and (2) a UUID corresponding to the client cookie and the request, respectively.
 The completed response of an in-progress request can be retrieved within a predefined time.
 Using cookies, this response can be retrieved before the timeout is configured via `webserver.session.maxExpiryTimeMs`.
 Using the UUID, the timout is configured via relevant completed user task retention time configuration 
@@ -31,7 +31,7 @@ and `completed.user.task.retention.time.ms` ).
 
  `curl -X POST -b /tmp/mycookie-jar.txt "http://CRUISE_CONTROL_HOST:9090/kafkacruisecontrol/remove_broker?brokerid=1234&dryrun=false"`
 
-* Note that `User-Task-Id` and is applicable for an entire `URL`, including its parameters.
+* Note that a `User-Task-ID` or a `sessionId` and is applicable for an entire `URL`, including its parameters.
 Hence, the same endpoint with different parameters would create and use a different `User-Task-Id`.
 
 ## GET REQUESTS
